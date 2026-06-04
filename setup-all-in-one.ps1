@@ -149,6 +149,12 @@ if (-not (Test-Path $psexec)) {
     Write-Host "  ✅ psexec.exe found"
 }
 
+# ── 2b. Copy agent files to public dir (required for auto-inject) ────────
+Write-Host "`n[2b] Copying agent files to public directory..." -ForegroundColor Yellow
+Copy-Item "$InstallDir\agent.py" "$BaseDir\agent.py" -Force
+Copy-Item "$InstallDir\win_desktop.py" "$BaseDir\win_desktop.py" -Force
+Write-Host "  ✅ agent.py and win_desktop.py copied to $BaseDir"
+
 # ── 6. Update config.ini paths ──────────────────────────────────────────
 Write-Host "`n[6/9] Updating configuration..." -ForegroundColor Yellow
 $cfgPath = "$InstallDir\config.ini"
@@ -182,26 +188,32 @@ if ($existing) {
 New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -Protocol TCP -LocalPort 7777 -Action Allow -Profile Any | Out-Null
 Write-Host "  ✅ Firewall rule 'RDVR-Inbound' created (port 7777 TCP)"
 
-# ── 9. Scheduled Tasks (Auto-start) ──────────────────────────────────────
-Write-Host "`n[9/9] Registering auto-start scheduled tasks..." -ForegroundColor Yellow
-$taskNameServer = "RDVR_Server"
-$taskNameAgent  = "RDVR_Agent_ea001"
+# ── 9. Scheduled Task (Server auto-start at boot) ───────────────────────
+Write-Host "`n[9/9] Registering server auto-start task..." -ForegroundColor Yellow
+$taskName = "RDVR"
 
-# Server task
-$actionServer = New-ScheduledTaskAction -Execute "C:\Program Files\Python312\pythonw.exe" -Argument "$InstallDir\app.py" -WorkingDirectory $InstallDir
-$triggerBoot  = New-ScheduledTaskTrigger -AtStartup
-$triggerLogon = New-ScheduledTaskTrigger -AtLogon
-$settings     = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RunOnlyIfNetworkAvailable:$false
-$principal    = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+# Create batch wrapper with logging
+$wrapperBat = Join-Path $InstallDir "start_service.bat"
+@"
+@echo off
+cd /d "$InstallDir"
+start /b "" "$py" -u "$InstallDir\app.py" >> "$InstallDir\server.log" 2>&1
+"@ | Set-Content $wrapperBat -Encoding ASCII
 
-Register-ScheduledTask -TaskName $taskNameServer -Action $actionServer -Trigger $triggerBoot,$triggerLogon -Settings $settings -Principal $principal -Force | Out-Null
-Write-Host "  ✅ Scheduled task '$taskNameServer' created (runs as SYSTEM)"
+$action   = New-ScheduledTaskAction -Execute $wrapperBat -WorkingDirectory $InstallDir
+$trigger  = New-ScheduledTaskTrigger -AtStartup
+$settings = New-ScheduledTaskSettingsSet `
+    -AllowStartIfOnBatteries `
+    -DontStopIfGoingOnBatteries `
+    -StartWhenAvailable `
+    -ExecutionTimeLimit 0 `
+    -RestartCount 3 `
+    -RestartInterval (New-TimeSpan -Minutes 1)
+$principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
 
-# Agent task (for ea001 — customize usernames as needed)
-$actionAgent = New-ScheduledTaskAction -Execute "C:\Program Files\Python312\pythonw.exe" -Argument "$InstallDir\agent.py ea001"
-$triggerAgent = New-ScheduledTaskTrigger -AtLogon
-Register-ScheduledTask -TaskName $taskNameAgent -Action $actionAgent -Trigger $triggerAgent -Settings $settings -Principal $principal -Force | Out-Null
-Write-Host "  ✅ Scheduled task '$taskNameAgent' created (auto-starts ea001 agent)"
+Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force | Out-Null
+Write-Host "  ✅ Scheduled task '$taskName' registered (boot auto-start as SYSTEM)"
+Write-Host "  ℹ️  Agents are auto-injected when users RDP in (no per-user tasks needed)"
 
 # ── 10. NVENC Patch (optional) ───────────────────────────────────────────
 if (-not $SkipNvencPatch) {
@@ -219,11 +231,8 @@ if (-not $SkipNvencPatch) {
 
 # ── 11. Start services now ─────────────────────────────────────────────
 Write-Host "`n[Start] Launching RDVR now..." -ForegroundColor Green
-Start-ScheduledTask -TaskName $taskNameServer
+Start-ScheduledTask -TaskName $taskName
 Write-Host "  ▶ Server started (http://localhost:7777)"
-
-Start-ScheduledTask -TaskName $taskNameAgent
-Write-Host "  ▶ Agent started for ea001"
 
 Start-Sleep 3
 
@@ -241,8 +250,9 @@ Write-Host @"
 ║  Recordings:   $BaseDir\recordings               ║
 ║  Thumbnails:   $BaseDir\thumbs                   ║
 ╠══════════════════════════════════════════════════════════════╣
-║  To re-start:  Start-ScheduledTask -TaskName 'RDVR_Server'   ║
-║  To stop:      Stop-ScheduledTask  -TaskName 'RDVR_Server'   ║
+║  To re-start:  Start-ScheduledTask -TaskName 'RDVR'        ║
+║  To stop:      Stop-ScheduledTask  -TaskName 'RDVR'        ║
+║  Password:     python $InstallDir\setup_auth.py            ║
 ╚══════════════════════════════════════════════════════════════╝
 "@ -ForegroundColor Green
 
