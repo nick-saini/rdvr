@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RDP Command Center</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3">
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="header-title">RDP <span>Command Center</span></div>
+      <div class="live-badge"><span class="pulse"></span> Live</div>
+    </div>
+    <div class="stats-bar">
+      <div class="stat-pill"><span class="label">CPU</span><span class="value" id="stat-cpu">--</span></div>
+      <div class="stat-pill"><span class="label">RAM</span><span class="value" id="stat-mem">--</span></div>
+      <div class="stat-pill"><span class="label">DISK</span><span class="value" id="stat-disk">--</span></div>
+      <div class="stat-pill"><span class="label">UPTIME</span><span class="value" id="stat-uptime">--</span></div>
+      <div class="stat-pill"><span class="label">SESSIONS</span><span class="value" id="stat-sessions">--</span></div>
+    </div>
+  </div>
+
+  <!-- Tab Bar -->
+  <div class="tabbar">
+    <div class="tab active" data-tab="grid"><span class="pulse" style="background:var(--accent)"></span> Live Grid</div>
+    <div class="tab" data-tab="connections">Connections <span class="count" id="tab-count-conn">0</span></div>
+    <div class="tab" data-tab="events">Events</div>
+    <div class="tab" data-tab="alerts">Alerts <span class="count" id="tab-count-alerts">0</span></div>
+    <div class="tab" data-tab="recordings">Recordings <span class="count" id="tab-count-rec">0</span></div>
+    <div class="tab" data-tab="users">User Notes</div>
+  </div>
+
+  <!-- Alert Banner -->
+  <div class="alert-banner" id="alert-banner">
+    <strong>SECURITY ALERT:</strong> <span id="alert-text"></span>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <!-- LIVE GRID -->
+    <div class="tab-pane active" id="pane-grid">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <input type="text" id="grid-search" placeholder="Search user / session...">
+          <select id="grid-filter">
+            <option value="all">All States</option>
+            <option value="Active">Active</option>
+            <option value="Idle">Idle</option>
+            <option value="Disc">Disconnected</option>
+          </select>
+          <button class="btn btn-primary" onclick="refreshAll()">Refresh</button>
+          <div style="border-left:1px solid var(--border);margin-left:6px;padding-left:6px;display:flex;gap:4px">
+            <button class="btn" onclick="setGridSize('small')" title="Small tiles (more per screen)">S</button>
+            <button class="btn" onclick="setGridSize('medium')" title="Medium tiles">M</button>
+            <button class="btn" onclick="setGridSize('large')" title="Large tiles">L</button>
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn btn-info" onclick="injectAgents()" title="Start screenshot capture in all sessions">Inject Agents</button>
+          <button class="btn btn-warn" onclick="openMsgAll()">Message All</button>
+          <button class="btn btn-danger" onclick="massLogoffDisc()">Logoff All Disconnected</button>
+        </div>
+      </div>
+      <div class="cctv-grid size-medium" id="cctv-grid">
+        <div class="empty">Loading sessions...</div>
+      </div>
+    </div>
+
+    <!-- CONNECTIONS TABLE -->
+    <div class="tab-pane" id="pane-connections">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <input type="text" id="conn-search" placeholder="Search user / IP / state...">
+          <button class="btn btn-primary" onclick="loadConnections()">Refresh</button>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn" onclick="exportConnectionsCSV()">Export CSV</button>
+        </div>
+      </div>
+      <table class="gtable" id="connections-table">
+        <thead>
+          <tr>
+            <th>State</th>
+            <th>Username</th>
+            <th>Session</th>
+            <th>Logon Time</th>
+            <th>Duration</th>
+            <th>Idle</th>
+            <th>Client IP</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- EVENTS -->
+    <div class="tab-pane" id="pane-events">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <input type="number" id="log-days" value="1" min="1" max="30" style="width:70px">
+          <button class="btn btn-primary" onclick="loadEvents()">Load</button>
+          <button class="btn" onclick="exportEventsCSV()">Export CSV</button>
+        </div>
+        <div class="toolbar-right">
+          <input type="text" id="log-search" placeholder="Filter user / IP / event...">
+        </div>
+      </div>
+      <div id="events-list">
+        <div class="empty">Select days and click Load.</div>
+      </div>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="tab-pane" id="pane-alerts">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <input type="number" id="alert-days" value="1" min="1" max="7" style="width:70px">
+          <button class="btn btn-primary" onclick="loadAlerts()">Load Failed Logins</button>
+        </div>
+      </div>
+      <div id="alerts-list">
+        <div class="empty">No alerts loaded.</div>
+      </div>
+    </div>
+
+    <!-- RECORDINGS -->
+    <div class="tab-pane" id="pane-recordings">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <button class="btn btn-primary" onclick="loadRecordings()">Refresh</button>
+          <div class="stat-pill" style="margin-left:10px"><span class="label">Total Storage</span><span class="value" id="rec-size">--</span></div>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn btn-warn" onclick="runRetention()">Run Retention (7d)</button>
+        </div>
+      </div>
+      <div id="recordings-list">
+        <div class="empty">No recordings yet. Click Record on a session to start.</div>
+      </div>
+    </div>
+
+    <!-- USERS / NOTES -->
+    <div class="tab-pane" id="pane-users">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <input type="text" id="note-username" placeholder="Username (e.g. EA001)">
+          <button class="btn btn-primary" onclick="loadNotes()">Load Notes</button>
+        </div>
+      </div>
+      <div id="notes-display" style="margin-bottom:14px"></div>
+      <textarea id="note-input" placeholder="Enter note about this user..."></textarea>
+      <div style="margin-top:10px">
+        <button class="btn btn-primary" onclick="saveNote()">Save to mem0</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Message Modal -->
+<div class="modal-overlay" id="msg-modal">
+  <div class="modal">
+    <h3 id="msg-title">Send Message</h3>
+    <textarea id="msg-body" placeholder="Type message..."></textarea>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="sendMsgConfirm()">Send</button>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/dashboard.js') }}?v=3"></script>
+</body>
+</html>

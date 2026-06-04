@@ -1,0 +1,236 @@
+:root {
+  --bg: #0b0d12;
+  --panel: #11131a;
+  --panel-hover: #181b24;
+  --border: #1f2330;
+  --text: #c9cdd8;
+  --muted: #7a8199;
+  --accent: #00d084;
+  --accent-dim: #00d08422;
+  --danger: #ff2e63;
+  --danger-dim: #ff2e6322;
+  --warn: #ffaa00;
+  --warn-dim: #ffaa0022;
+  --info: #2ecfff;
+  --info-dim: #2ecfff22;
+  --font: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  height: 100%; overflow: hidden;
+}
+
+/* Layout */
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+/* Header */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 18px; background: var(--panel); border-bottom: 1px solid var(--border);
+}
+.header-left { display: flex; align-items: center; gap: 14px; }
+.header-title { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+.header-title span { color: var(--accent); }
+.live-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--accent-dim); color: var(--accent); padding: 4px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+}
+.pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%{opacity:1} 50%{opacity:.4} 100%{opacity:1} }
+
+.stats-bar {
+  display: flex; gap: 18px; align-items: center;
+}
+.stat-pill {
+  background: var(--bg); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px;
+  font-size: 12px; display: flex; align-items: center; gap: 8px;
+}
+.stat-pill .label { color: var(--muted); }
+.stat-pill .value { font-weight: 700; font-family: var(--mono); }
+
+/* Tabs */
+.tabbar {
+  display: flex; gap: 2px; padding: 0 18px; background: var(--panel); border-bottom: 1px solid var(--border);
+}
+.tab {
+  padding: 10px 16px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; gap: 8px;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); background: linear-gradient(0deg, var(--accent-dim), transparent); }
+.tab .count { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 11px; border: 1px solid var(--border); }
+
+/* Toolbar */
+.toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 18px; background: var(--bg); border-bottom: 1px solid var(--border); gap: 10px;
+}
+.toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 10px; }
+input[type="text"], input[type="number"], select {
+  background: var(--panel); color: var(--text); border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; font-size: 13px;
+}
+input[type="text"]:focus, select:focus { outline: none; border-color: var(--accent); }
+.btn {
+  background: var(--panel); color: var(--text); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:hover { background: var(--panel-hover); }
+.btn-primary { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.btn-danger { background: var(--danger-dim); color: var(--danger); border-color: var(--danger); }
+.btn-warn { background: var(--warn-dim); color: var(--warn); border-color: var(--warn); }
+.btn-info { background: var(--info-dim); color: var(--info); border-color: var(--info); }
+
+/* Content */
+.content { flex: 1; overflow: auto; padding: 18px; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* CCTV Grid (Veyon-style) */
+.cctv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+/* Grid sizes for 50-user monitoring */
+.cctv-grid.size-small {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+.cctv-grid.size-small .cam-preview { height: 90px; }
+.cctv-grid.size-small .cam-header { padding: 6px 8px; }
+.cctv-grid.size-small .cam-user { font-size: 12px; }
+.cctv-grid.size-small .cam-body { padding: 8px; gap: 4px; }
+.cctv-grid.size-small .cam-meta { font-size: 10px; }
+.cctv-grid.size-small .cam-actions { gap: 4px; padding-top: 6px; }
+.cctv-grid.size-small .cam-actions .btn { font-size: 10px; padding: 4px 6px; }
+
+.cctv-grid.size-large {
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 18px;
+}
+.cctv-grid.size-large .cam-preview { height: 180px; }
+.cam-card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+  display: flex; flex-direction: column; transition: transform .15s, border-color .15s;
+}
+.cam-card:hover { border-color: #2a2f42; transform: translateY(-2px); }
+.cam-card.live { border-color: var(--accent-dim); }
+.cam-card.offline { opacity: .7; }
+.cam-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px; background: var(--bg); border-bottom: 1px solid var(--border);
+}
+.cam-user { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.cam-status {
+  width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+}
+.cam-status.Active { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.cam-status.Idle { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+.cam-status.Disconnected, .cam-status.Disc { background: var(--muted); }
+.cam-body {
+  padding: 14px; display: flex; flex-direction: column; gap: 8px; flex: 1;
+}
+.cam-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.cam-meta .mono { font-family: var(--mono); color: var(--text); }
+.cam-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 10px; }
+.cam-actions .btn { flex: 1; justify-content: center; font-size: 12px; }
+.cam-preview {
+  height: 120px; background: #000; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 12px; border: 1px dashed var(--border); position: relative; overflow: hidden;
+}
+.cam-preview .no-signal { text-align: center; }
+.cam-preview .cam-thumb {
+  width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; border-radius: 6px;
+}
+.cam-preview .live-tag {
+  position: absolute; top: 6px; left: 6px; background: var(--danger); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 700;
+}
+.cam-preview .session-id {
+  position: absolute; bottom: 6px; right: 6px; background: rgba(0,0,0,.7); padding: 2px 6px; border-radius: 4px; font-family: var(--mono); font-size: 11px;
+}
+
+/* Guacamole-style Table */
+.gtable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.gtable thead th {
+  text-align: left; padding: 10px 12px; background: var(--panel); color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); position: sticky; top: 0;
+}
+.gtable tbody tr { border-bottom: 1px solid var(--border); }
+.gtable tbody tr:hover { background: var(--panel-hover); }
+.gtable td { padding: 10px 12px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+.dot.green { background: var(--accent); }
+.dot.yellow { background: var(--warn); }
+.dot.gray { background: var(--muted); }
+
+/* Logs / Events */
+.event-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.event-time { font-family: var(--mono); color: var(--muted); min-width: 140px; }
+.event-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.event-badge.login { background: var(--accent-dim); color: var(--accent); }
+.event-badge.logoff { background: var(--info-dim); color: var(--info); }
+.event-badge.disconnect { background: var(--warn-dim); color: var(--warn); }
+.event-badge.failed { background: var(--danger-dim); color: var(--danger); }
+
+/* Alerts banner */
+.alert-banner {
+  background: var(--danger-dim); border: 1px solid var(--danger); color: var(--danger); padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; display: none; align-items: center; gap: 10px;
+}
+.alert-banner.show { display: flex; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none; align-items: center; justify-content: center; z-index: 1000;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px; width: 480px; max-width: 90vw; padding: 18px;
+}
+.modal h3 { margin: 0 0 12px; font-size: 16px; }
+.modal textarea { width: 100%; min-height: 80px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-family: var(--font); }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: #2a2f42; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #3b4261; }
+
+/* Empty state */
+.empty { text-align: center; color: var(--muted); padding: 40px; font-size: 14px; }
+
+/* Lightbox — full-screen enlarged view */
+.lightbox-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.92); z-index: 3000;
+  display: flex; align-items: center; justify-content: center;
+}
+.lightbox {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  position: fixed; inset: 24px;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.lightbox-header {
+  display: flex; align-items: center; gap: 12px; padding: 14px 18px;
+  background: var(--bg); border-bottom: 1px solid var(--border); font-size: 15px;
+  flex-shrink: 0;
+}
+.lightbox-body {
+  flex: 1; position: relative;
+  background: #000; min-height: 0;
+}
+.lightbox-img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  border-radius: 0;
+}
+.lightbox-footer {
+  display: flex; gap: 10px; padding: 14px 18px; background: var(--bg); border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}

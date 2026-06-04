@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RDVR — Live Wall</title>
+  <style>
+    :root {
+      --bg: #0f172a; --bg-elevated: #1e293b; --surface: #1e293b; --surface-hover: #334155;
+      --border: #334155; --border-subtle: #1e293b; --primary: #4f46e5; --primary-hover: #4338ca;
+      --success: #10b981; --danger: #f43f5e; --warning: #f59e0b; --info: #3b82f6;
+      --text: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --radius: 10px; --shadow: 0 4px 14px rgba(0,0,0,0.35);
+    }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); overflow: hidden; font-size: 14px; }
+
+    .toolbar { height: 52px; background: var(--bg-elevated); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; padding: 0 20px; flex-shrink: 0; }
+    .toolbar .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; }
+    .toolbar .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--success); box-shadow: 0 0 8px var(--success); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+    .toolbar .spacer { flex: 1; }
+    .toolbar .meta { font-size: 12px; color: var(--text-muted); }
+    .toolbar .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; border: none; background: var(--surface-hover); color: var(--text); font-family: var(--font); font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; }
+    .toolbar .btn:hover { background: var(--primary); color: #fff; }
+    .toolbar .btn.primary { background: var(--primary); color: #fff; }
+    .toolbar .btn.primary:hover { background: var(--primary-hover); }
+    .toolbar .btn.danger { background: var(--danger); color: #fff; }
+    .toolbar select { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 12px; }
+
+    .wall { display: grid; gap: 12px; padding: 12px; height: calc(100vh - 52px); overflow-y: auto; align-content: start; }
+    .wall.cols-1 { grid-template-columns: 1fr; }
+    .wall.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .wall.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .wall.cols-4 { grid-template-columns: repeat(4, 1fr); }
+    .wall.cols-5 { grid-template-columns: repeat(5, 1fr); }
+    .wall.cols-6 { grid-template-columns: repeat(6, 1fr); }
+
+    .cam { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column; position: relative; box-shadow: var(--shadow); transition: transform .15s, box-shadow .15s; }
+    .cam:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.45); }
+    .cam-img { flex: 1; background: #000; display: flex; align-items: center; justify-content: center; min-height: 140px; position: relative; }
+    .cam-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cam-img .no-signal { color: var(--text-muted); font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .cam-img .live-badge { position: absolute; top: 8px; left: 8px; background: rgba(244,63,94,0.9); color: #fff; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; letter-spacing: .5px; display: flex; align-items: center; gap: 4px; }
+    .cam-img .live-badge::before { content: ''; width: 6px; height: 6px; background: #fff; border-radius: 50%; }
+    .cam-info { padding: 8px 12px; display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--border); }
+    .cam-info .user { font-weight: 600; font-size: 13px; }
+    .cam-info .sid { font-size: 11px; color: var(--text-muted); background: var(--bg); padding: 2px 6px; border-radius: 4px; }
+    .cam-info .state { margin-left: auto; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; padding: 3px 8px; border-radius: 4px; }
+    .cam-info .state.active { background: rgba(16,185,129,0.15); color: var(--success); }
+    .cam-info .state.disc { background: rgba(245,158,11,0.15); color: var(--warning); }
+    .cam-info .state.listen { background: rgba(59,130,246,0.15); color: var(--info); }
+
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; color: var(--text-muted); gap: 12px; }
+    .empty-state .icon { font-size: 48px; opacity: .4; }
+    .toast-container { position: fixed; bottom: 16px; right: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 999; }
+    .toast { background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border); padding: 10px 16px; border-radius: var(--radius); font-size: 12px; box-shadow: var(--shadow); animation: slideIn .3s ease; }
+    @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.92); backdrop-filter: blur(4px); z-index: 1000; display: none; flex-direction: column; }
+    .modal.open { display: flex; }
+    .modal-header { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; flex-shrink: 0; }
+    .modal-header .title { font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+    .modal-header .title .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 10px var(--danger); animation: pulse 1.5s infinite; }
+    .modal-header .close { background: var(--surface-hover); color: var(--text); border: none; width: 40px; height: 40px; border-radius: 8px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .modal-header .close:hover { background: var(--danger); color: #fff; }
+    .modal-body { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #000; position: relative; }
+    .modal-body img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
+    .modal-body .live-badge { position: absolute; top: 16px; left: 16px; background: rgba(244,63,94,0.9); color: #fff; font-size: 13px; font-weight: 700; padding: 5px 12px; border-radius: 4px; letter-spacing: .5px; display: flex; align-items: center; gap: 6px; z-index: 2; }
+    .modal-body .live-badge::before { content: ''; width: 8px; height: 8px; background: #fff; border-radius: 50%; }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <div class="brand"><span class="dot"></span> RDVR Live Wall</div>
+    <div class="meta" id="metaText">Loading…</div>
+    <div class="spacer"></div>
+    <select id="colSelect" onchange="setCols(this.value)">
+      <option value="2">2 cols</option>
+      <option value="3" selected>3 cols</option>
+      <option value="4">4 cols</option>
+      <option value="5">5 cols</option>
+      <option value="6">6 cols</option>
+    </select>
+    <button class="btn" onclick="refreshNow()">🔄 Refresh</button>
+    <button class="btn primary" onclick="startAuto()" id="btnAuto">▶ Auto</button>
+    <button class="btn danger" onclick="stopAll()">⏹ Stop All</button>
+    <button class="btn" onclick="location.href='/'">← Dashboard</button>
+  </div>
+
+  <div class="wall cols-3" id="wall"></div>
+  <div class="toast-container" id="toasts"></div>
+
+  <div class="modal" id="modal" onclick="closeModal(event)">
+    <div class="modal-header">
+      <div class="title"><span class="dot"></span> <span id="modalUser">User</span></div>
+      <button class="close" onclick="closeModalDirect()">×</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <div class="live-badge">LIVE</div>
+      <img id="modalImg" src="" alt="">
+    </div>
+  </div>
+
+<script>
+  const REFRESH_MS = 3000;
+  let sessions = [];
+  let autoTimer = null;
+  let lastMap = new Map();
+
+  async function loadSessions() {
+    const res = await fetch('/api/sessions', { credentials: 'same-origin' });
+    if (res.status === 401) { location.href = '/login'; return; }
+    sessions = (await res.json()).filter(s => s.username.toLowerCase() !== 'administrator');
+    render();
+  }
+
+  function stateClass(state) {
+    const s = (state || '').toLowerCase();
+    if (s.includes('active')) return 'active';
+    if (s.includes('disc')) return 'disc';
+    if (s.includes('listen')) return 'listen';
+    return 'active';
+  }
+
+  function render() {
+    const wall = document.getElementById('wall');
+    const meta = document.getElementById('metaText');
+    meta.textContent = `${sessions.length} session${sessions.length===1?'':'s'} • Updated ${new Date().toLocaleTimeString()}`;
+
+    if (!sessions.length) {
+      wall.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">📷</div><div>No active sessions</div></div>`;
+      return;
+    }
+
+    const newMap = new Map();
+    sessions.forEach(s => newMap.set(s.username, s));
+
+    // Detect logins / logoffs
+    newMap.forEach((s, u) => { if (!lastMap.has(u)) toast(`${u} logged in`); });
+    lastMap.forEach((s, u) => { if (!newMap.has(u)) toast(`${u} logged off`, 'warn'); });
+    lastMap = newMap;
+
+    wall.innerHTML = sessions.map(s => {
+      const ts = Date.now();
+      const imgUrl = `/stream/${s.username}`;
+      return `
+        <div class="cam" data-user="${s.username}">
+          <div class="cam-img">
+            <div class="live-badge">LIVE</div>
+            <img src="${imgUrl}" alt="${s.username}" onerror="this.style.display='none'; this.parentNode.innerHTML+=\`<div class='no-signal'>📷 No signal</div>\`">
+          </div>
+          <div class="cam-info">
+            <span class="user">${s.username}</span>
+            <span class="sid">ID ${s.session_id}</span>
+            <span class="state ${stateClass(s.state)}">${s.state || 'Active'}</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function setCols(n) {
+    document.getElementById('wall').className = 'wall cols-' + n;
+  }
+
+  function refreshNow() { loadSessions(); }
+
+  function startAuto() {
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; document.getElementById('btnAuto').textContent = '▶ Auto'; }
+    else { autoTimer = setInterval(loadSessions, REFRESH_MS); document.getElementById('btnAuto').textContent = '⏸ Pause'; toast('Auto-refresh ON (3s)'); }
+  }
+
+  async function stopAll() {
+    if (!confirm('Disconnect ALL active sessions?')) return;
+    for (const s of sessions) {
+      try { await fetch(`/api/sessions/${s.session_id}/disconnect`, { method: 'POST', credentials: 'same-origin' }); } catch(e){}
+    }
+    toast('Disconnect commands sent');
+    setTimeout(loadSessions, 1000);
+  }
+
+  function toast(msg, type='info') {
+    const c = document.getElementById('toasts');
+    const d = document.createElement('div');
+    d.className = 'toast';
+    d.textContent = msg;
+    c.appendChild(d);
+    setTimeout(() => d.remove(), 4000);
+  }
+
+  function openModal(user) {
+    const modal = document.getElementById('modal');
+    document.getElementById('modalUser').textContent = user;
+    const img = document.getElementById('modalImg');
+    img.src = '/preview/' + encodeURIComponent(user) + '?ts=' + Date.now();
+    modal.classList.add('open');
+  }
+  function closeModalDirect() { document.getElementById('modal').classList.remove('open'); document.getElementById('modalImg').src = ''; }
+  function closeModal(e) { if (e.target.id === 'modal') closeModalDirect(); }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModalDirect(); });
+
+  // Attach click handlers after each render
+  const origRender = render;
+  render = function() {
+    origRender();
+    document.querySelectorAll('.cam').forEach(cam => {
+      cam.style.cursor = 'pointer';
+      cam.addEventListener('click', () => openModal(cam.dataset.user));
+    });
+  };
+
+  // Bootstrap
+  loadSessions();
+  autoTimer = setInterval(loadSessions, REFRESH_MS);
+  document.getElementById('btnAuto').textContent = '⏸ Pause';
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if (e.key === 'r' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); refreshNow(); }
+    if (e.key === ' ' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); startAuto(); }
+  });
+</script>
+</body>
+</html>

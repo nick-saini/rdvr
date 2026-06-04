@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RDVR — Sign In</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface2: #f1f5f9;
+      --border: #e2e8f0;
+      --border-bright: #cbd5e1;
+      --text: #0f172a;
+      --muted: #94a3b8;
+      --accent: #4f46e5;
+      --accent-glow: rgba(79,70,229,0.18);
+      --accent-dim: rgba(79,70,229,0.08);
+      --danger: #f43f5e;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%; background: var(--bg); color: var(--text);
+      font-family: var(--font); font-size: 14px; overflow: hidden;
+    }
+
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(79,70,229,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79,70,229,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .bg-glow {
+      position: fixed; width: 600px; height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(79,70,229,0.08) 0%, transparent 70%);
+      top: 50%; left: 50%; transform: translate(-50%, -60%);
+      z-index: 0; pointer-events: none;
+    }
+
+    .card-wrap {
+      position: relative; z-index: 1;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 24px;
+    }
+    .card {
+      width: 100%; max-width: 420px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 44px 40px;
+      box-shadow: 0 24px 64px rgba(15,23,42,0.10), 0 0 0 1px rgba(79,70,229,0.06);
+    }
+
+    .logo {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 36px;
+    }
+    .logo-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: linear-gradient(135deg, #4f46e5, #818cf8);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; box-shadow: 0 4px 16px rgba(79,70,229,0.30);
+      color: #fff;
+    }
+    .logo-text { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+    .logo-text span { color: var(--accent); }
+    .logo-sub { font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing: 0.5px; margin-top: 1px; }
+
+    h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 6px; }
+    .subtitle { font-size: 13px; color: var(--muted); margin-bottom: 32px; }
+
+    .field { margin-bottom: 18px; }
+    label {
+      display: block; font-size: 12px; font-weight: 600;
+      color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .input-wrap { position: relative; }
+    .input-icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      font-size: 15px; pointer-events: none; opacity: 0.5;
+    }
+    input[type="text"], input[type="password"] {
+      width: 100%; height: 46px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: var(--font); font-size: 14px;
+      padding: 0 14px 0 42px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+    input::placeholder { color: var(--muted); }
+
+    .error-msg {
+      background: var(--accent-dim);
+      border: 1px solid rgba(244,63,94,0.25);
+      border-radius: 8px;
+      color: var(--danger);
+      font-size: 12px; font-weight: 500;
+      padding: 10px 14px;
+      margin-bottom: 18px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .btn-submit {
+      width: 100%; height: 48px;
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      border: none; border-radius: 12px;
+      color: #fff; font-family: var(--font);
+      font-size: 14px; font-weight: 700;
+      letter-spacing: 0.3px; cursor: pointer;
+      margin-top: 8px;
+      box-shadow: 0 4px 20px rgba(79,70,229,0.35);
+      transition: opacity 0.18s, transform 0.18s, box-shadow 0.18s;
+    }
+    .btn-submit:hover {
+      opacity: 0.92; transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(79,70,229,0.45);
+    }
+    .btn-submit:active { transform: translateY(0); }
+
+    .card-footer {
+      margin-top: 28px; padding-top: 20px;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; color: var(--muted);
+    }
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <div class="card-wrap">
+    <div class="card">
+      <div class="logo">
+        <div class="logo-icon">&#127909;</div>
+        <div>
+          <div class="logo-text">RDVR</div>
+          <div class="logo-sub">REMOTE DESKTOP VIDEO RECORDER</div>
+        </div>
+      </div>
+
+      <h1>Welcome back</h1>
+      <p class="subtitle">Sign in to access your monitoring dashboard</p>
+
+      {% if error %}
+      <div class="error-msg">
+        <span>&#9888;</span> {{ error }}
+      </div>
+      {% endif %}
+
+      <form method="POST" action="/login" autocomplete="off">
+        {% if next %}
+        <input type="hidden" name="next" value="{{ next }}">
+        {% endif %}
+
+        <div class="field">
+          <label>Username</label>
+          <div class="input-wrap">
+            <span class="input-icon">&#128100;</span>
+            <input type="text" name="username" placeholder="admin"
+                   value="{{ username or '' }}" autofocus autocomplete="username">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">&#128274;</span>
+            <input type="password" name="password" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;"
+                   autocomplete="current-password">
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit">Sign In &rarr;</button>
+      </form>
+
+      <div class="card-footer">
+        <div class="status-dot"></div>
+        <span>RDVR v2 &nbsp;&middot;&nbsp; All sessions end-to-end monitored</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
